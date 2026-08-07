@@ -1,3 +1,4 @@
 {
+  "framework": null,
   "installCommand": "npm install --legacy-peer-deps"
 }
