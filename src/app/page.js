@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 // TAMBAHKAN 3 BARIS INI DI BAWAH IMPORT BROWSER KAMU:
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 
 import ReactQuill from 'react-quill-new';
 export default function Home() {
