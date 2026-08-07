@@ -6,8 +6,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-
+import ReactQuill from 'react-quill-new';
 export default function Home() {
   
   const [halamanAktif, setHalamanAktif] = useState("beranda"); // "beranda", "login", "admin", "detail", "tentang"
