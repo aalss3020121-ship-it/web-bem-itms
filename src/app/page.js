@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-// TAMBAHKAN 3 BARIS INI DI BAWAH IMPORT BROWSER KAMU:
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css';
 
-import ReactQuill from 'react-quill-new';
+// Import ReactQuill secara dinamis agar Next.js tidak error saat build
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
+
 export default function Home() {
   
   const [halamanAktif, setHalamanAktif] = useState("beranda"); // "beranda", "login", "admin", "detail", "tentang"
@@ -24,42 +24,43 @@ export default function Home() {
       id: 1, 
       judul: "BEM ITMS Gelar Diskusi Terbuka Transparansi Anggaran Bareng Rektorat", 
       kategori: "MENSOPOL", 
-      waktu: "2 jam yang lalu",
+      waktu: "08 Agustus 2026, 08:30 WIB",
       image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
-      isi: "Badan Eksekutif Mahasiswa (BEM) ITMS sukses menyelenggarakan diskusi terbuka bersama pihak rektorat pada hari Jumat ini.\n\nAcara ini membahas secara mendalam mengenai transparansi alokasi anggaran kegiatan mahasiswa serta fasilitas kampus demi mewujudkan tata kelola kampus yang akuntabel dan transparan." 
+      isi: "<p>Badan Eksekutif Mahasiswa (BEM) ITMS sukses menyelenggarakan diskusi terbuka bersama pihak rektorat pada hari Jumat ini.</p><p><br></p><p>Acara ini membahas secara mendalam mengenai transparansi alokasi anggaran kegiatan mahasiswa serta fasilitas kampus demi mewujudkan tata kelola kampus yang akuntabel dan transparan.</p>" 
     },
     { 
       id: 2, 
       judul: "Tim E-Sports BEM ITMS Sabet Juara 1 Turnamen Mahasiswa Nasional", 
       kategori: "MENPORA", 
-      waktu: "5 jam yang lalu",
+      waktu: "07 Agustus 2026, 14:15 WIB",
       image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80",
-      isi: "Prestasi membanggakan kembali ditorehkan oleh mahasiswa ITMS.\n\nTim E-Sports perwakilan kampus berhasil menduduki podium tertinggi dan menyabet gelar Juara 1 dalam ajang Turnamen E-Sports Antar Mahasiswa Tingkat Nasional setelah menaklukkan perwakilan universitas lain di babak final." 
+      isi: "<p>Prestasi membanggakan kembali ditorehkan oleh mahasiswa ITMS.</p><p><br></p><p>Tim E-Sports perwakilan kampus berhasil menduduki podium tertinggi dan menyabet gelar Juara 1 dalam ajang Turnamen E-Sports Antar Mahasiswa Tingkat Nasional setelah menaklukkan perwakilan universitas lain di babak final.</p>" 
     },
     { 
       id: 3, 
       judul: "Peluncuran Resmi Portal Berita Mahasiswa ITMS Berbasis Web", 
       kategori: "MEN KOMINFO", 
-      waktu: "1 hari yang lalu",
+      waktu: "06 Agustus 2026, 10:00 WIB",
       image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80",
-      isi: "Kementerian Komunikasi dan Informasi BEM ITMS secara resmi meluncurkan portal berita berbasis web modern.\n\nPlatform ini diharapkan dapat menjadi pusat informasi, wadah aspirasi mahasiswa, serta sarana publikasi kegiatan seluruh kementerian di lingkungan kampus ITMS." 
+      isi: "<p>Kementerian Komunikasi dan Informasi BEM ITMS secara resmi meluncurkan portal berita berbasis web modern.</p><p><br></p><p>Platform ini diharapkan dapat menjadi pusat informasi, wadah aspirasi mahasiswa, serta sarana publikasi kegiatan seluruh kementerian di lingkungan kampus ITMS.</p>" 
     },
     { 
       id: 4, 
       judul: "Program Pengabdian Desa: Mahasiswa ITMS Bangun Fasilitas Air Bersih", 
       kategori: "MENDAGRI", 
-      waktu: "2 hari yang lalu",
+      waktu: "05 Agustus 2026, 09:45 WIB",
       image: "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=800&q=80",
-      isi: "Sebagai wujud nyata Tri Dharma Perguruan Tinggi, Kementerian Dalam Negeri BEM ITMS mengerahkan mahasiswa untuk turun langsung ke masyarakat.\n\nMelalui program pengabdian desa, tim mahasiswa sukses membangun fasilitas saluran air bersih yang kini dapat digunakan oleh ratusan warga desa binaan." 
+      isi: "<p>Sebagai wujud nyata Tri Dharma Perguruan Tinggi, Kementerian Dalam Negeri BEM ITMS mengerahkan mahasiswa untuk turun langsung ke masyarakat.</p><p><br></p><p>Melalui program pengabdian desa, tim mahasiswa sukses membangun fasilitas saluran air bersih yang kini dapat digunakan oleh ratusan warga desa binaan.</p>" 
     },
   ];
 
   const [daftarBerita, setDaftarBerita] = useState(defaultBerita);
 
   useEffect(() => {
-    const savedBerita = localStorage.getItem('berita_bem_itms');
-    const savedLikesCount = localStorage.getItem('likes_count');
-    const savedUserLiked = localStorage.getItem('user_liked_status');
+    // Menggunakan key _v2 agar memori cache format tanggal lama terhapus
+    const savedBerita = localStorage.getItem('berita_bem_itms_v2');
+    const savedLikesCount = localStorage.getItem('likes_count_v2');
+    const savedUserLiked = localStorage.getItem('user_liked_status_v2');
 
     if (savedBerita) { 
       try { 
@@ -107,8 +108,8 @@ export default function Home() {
 
     setLikesCount(newLikesCount);
     setUserLikedStatus(newUserLikedStatus);
-    localStorage.setItem('likes_count', JSON.stringify(newLikesCount));
-    localStorage.setItem('user_liked_status', JSON.stringify(newUserLikedStatus));
+    localStorage.setItem('likes_count_v2', JSON.stringify(newLikesCount));
+    localStorage.setItem('user_liked_status_v2', JSON.stringify(newUserLikedStatus));
   };
 
   const handleShare = async (berita, e) => {
@@ -129,24 +130,28 @@ export default function Home() {
     }
   };
 
-const handleLoginAdmin = (e) => {
+  const handleLoginAdmin = (e) => {
     e.preventDefault();
-    if (passwordInput === "bem123") { setHalamanAktif("admin"); setPasswordInput(""); } else { alert("Password salah!"); }
+    if (passwordInput === "bem123") { 
+      setHalamanAktif("admin"); 
+      setPasswordInput(""); 
+    } else { 
+      alert("Password salah!"); 
+    }
   };
 
-  // --- TAMBAHKAN FUNGSI FORMAT WAKTU INI ---
   const buatWaktuFormat = () => {
     const now = new Date();
+    const hari = now.getDate().toString().padStart(2, '0');
+    const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const bulan = namaBulan[now.getMonth()];
+    const tahun = now.getFullYear();
     const jam = now.getHours().toString().padStart(2, '0');
     const menit = now.getMinutes().toString().padStart(2, '0');
-    const tanggal = now.getDate().toString().padStart(2, '0');
-    const bulan = (now.getMonth() + 1).toString().padStart(2, '0');
-    const tahun = now.getFullYear();
-    return `${jam}:${menit} ${tanggal}/${bulan}/${tahun}`;
+    
+    return `${hari} ${bulan} ${tahun}, ${jam}:${menit} WIB`;
   };
-  // ----------------------------------------
 
-  // --- TAMBAHKAN CONFIG QUILL MODULES INI ---
   const quillModules = {
     toolbar: [
       [{ 'header': [1, 2, false] }],
@@ -155,7 +160,7 @@ const handleLoginAdmin = (e) => {
       ['clean']
     ]
   };
-  // ------------------------------------------
+
   const prosesSimpanBerita = (imageData) => {
     let beritaBaruList;
     
@@ -163,7 +168,6 @@ const handleLoginAdmin = (e) => {
       beritaBaruList = daftarBerita.map((item) => {
         if (item.id === editId) {
           return { 
-
             ...item, 
             judul: judulInput, 
             kategori: kategoriInput, 
@@ -182,20 +186,20 @@ const handleLoginAdmin = (e) => {
       const randomImage = defaultImages[Math.floor(Math.random() * defaultImages.length)];
       
       const beritaBaru = { 
-  id: Date.now(), 
-  judul: judulInput, 
-  kategori: kategoriInput, 
-  waktu: buatWaktuFormat(), // <-- MENJADI INI
-  image: imageData || randomImage, 
-  isi: isiInput 
-};
+        id: Date.now(), 
+        judul: judulInput, 
+        kategori: kategoriInput, 
+        waktu: buatWaktuFormat(), 
+        image: imageData || randomImage, 
+        isi: isiInput 
+      };
       
       beritaBaruList = [beritaBaru, ...daftarBerita];
       alert("Berita diposting!");
     }
     
     setDaftarBerita(beritaBaruList);
-    localStorage.setItem('berita_bem_itms', JSON.stringify(beritaBaruList));
+    localStorage.setItem('berita_bem_itms_v2', JSON.stringify(beritaBaruList));
     
     setJudulInput(""); 
     setIsiInput(""); 
@@ -240,7 +244,7 @@ const handleLoginAdmin = (e) => {
     if (confirm("Hapus berita permanen?")) {
       const beritaBaruList = daftarBerita.filter((berita) => berita.id !== id);
       setDaftarBerita(beritaBaruList);
-      localStorage.setItem('berita_bem_itms', JSON.stringify(beritaBaruList));
+      localStorage.setItem('berita_bem_itms_v2', JSON.stringify(beritaBaruList));
       
       if (editId === id) {
         handleBatalEdit();
@@ -282,7 +286,6 @@ const handleLoginAdmin = (e) => {
       <nav className="bg-blue-950 text-white shadow-md sticky top-0 z-50 border-b border-blue-900">
         <div className="max-w-screen-xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0">
           
-          {/* Bagian Logo */}
           <div 
             className="flex items-center justify-center md:justify-start w-full md:w-auto gap-2 md:gap-3 cursor-pointer" 
             onClick={() => { 
@@ -307,7 +310,6 @@ const handleLoginAdmin = (e) => {
             </div>
           </div>
 
-          {/* Bagian Menu */}
           <div className="flex gap-4 md:gap-6 text-[11px] md:text-sm font-bold md:font-medium items-center justify-center w-full md:w-auto border-t border-blue-800/60 md:border-none pt-2.5 md:pt-0">
             <button 
               onClick={() => { 
@@ -360,7 +362,7 @@ const handleLoginAdmin = (e) => {
             <div className="flex flex-col items-center mb-8 text-center">
               <div className="flex justify-center items-center gap-3 md:gap-4 mb-4">
                 <img src="/logo-kampus.png" alt="Logo ITMS" className="h-12 md:h-[60px] w-auto object-contain" />
-                <img src="/logo-bem.png" alt="Logo BEM" className="h-11 w-11 md:h-[55px] md:w-[55px] object-cover rounded-full border-2 border-yellow-500 shadow-md" />
+                <img src="/logo-bem.jpg" alt="Logo BEM" className="h-11 w-11 md:h-[55px] md:w-[55px] object-cover rounded-full border-2 border-yellow-500 shadow-md" />
                 <img src="/36914.png" alt="Logo Kabinet" style={{ mixBlendMode: 'multiply' }} className="h-14 md:h-[70px] w-auto object-contain" />
               </div>
               <h1 className="text-xl md:text-4xl font-extrabold text-blue-900 leading-tight">Institut Teknologi Muhammadiyah Sumatera</h1>
@@ -416,9 +418,10 @@ const handleLoginAdmin = (e) => {
               <img src={beritaPilihan.image} alt={beritaPilihan.judul} className="w-full h-full object-cover" />
             </div>
             
-            <div className="text-gray-700 text-sm md:text-lg leading-relaxed space-y-4 mb-8 whitespace-pre-line">
-              {beritaPilihan.isi}
-            </div>
+            <div 
+              className="quill-content text-gray-700 text-sm md:text-lg leading-relaxed mb-8"
+              dangerouslySetInnerHTML={{ __html: beritaPilihan.isi }}
+            />
             
             <div className="flex flex-wrap gap-3 md:gap-4 border-t pt-4">
               <button 
@@ -524,7 +527,7 @@ const handleLoginAdmin = (e) => {
                               🔗 Bagikan
                             </button>
                           </div>
-                          <span className="text-[10px] md:text-xs text-gray-400 block">
+                          <span className="text-[10px] md:text-xs text-gray-400 block font-medium">
                             {berita.waktu}
                           </span>
                         </div>
@@ -640,14 +643,15 @@ const handleLoginAdmin = (e) => {
                 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Isi Berita Lengkap</label>
-                  <textarea 
-                    rows="6" 
-                    value={isiInput} 
-                    onChange={(e) => setIsiInput(e.target.value)} 
-                    placeholder="Tuliskan berita di sini... (Enter untuk paragraf baru)" 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm text-black bg-white" 
-                    required 
-                  />
+                  <div className="bg-white">
+                    <ReactQuill 
+                      theme="snow"
+                      value={isiInput} 
+                      onChange={setIsiInput}
+                      modules={quillModules}
+                      placeholder="Tuliskan berita di sini..."
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex flex-col md:flex-row gap-3 mt-4">
@@ -703,7 +707,7 @@ const handleLoginAdmin = (e) => {
                         <h4 className="font-bold text-gray-900 text-sm md:text-base leading-tight mt-1">
                           {item.judul}
                         </h4>
-                        <span className="text-[10px] md:text-xs text-gray-400 block mt-1">
+                        <span className="text-[10px] md:text-xs text-gray-400 block mt-1 font-medium">
                           {item.waktu}
                         </span>
                       </div>
@@ -731,21 +735,62 @@ const handleLoginAdmin = (e) => {
         )}
       </main>
 
-      {/* FOOTER RESPONSIVE */}
-      <footer className="bg-gray-900 text-white py-8 mt-10">
-        <div className="max-w-screen-xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400 gap-5 text-center md:text-left">
+      {/* FOOTER RESPONSIVE DENGAN SVG */}
+      <footer className="bg-gray-900 text-white py-8 mt-10 border-t-4 border-blue-800">
+        <div className="max-w-screen-xl mx-auto px-5 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400 gap-6 text-center md:text-left">
           
-          <div className="flex flex-col items-center md:items-start">
-            <p className="text-xs md:text-sm">© 2026 Institut Teknologi Muhammadiyah Sumatera - BEM Kabinet Biru Laut.</p>
-            <p className="mt-1 text-[11px] md:text-xs text-gray-500 italic">"Tenang bukan berarti diam, dalam bukan berarti tenggelam."</p>
+          <div className="flex flex-col items-center md:items-start order-3 md:order-1 mt-4 md:mt-0">
+            <p className="text-xs md:text-sm text-gray-300">© 2026 Institut Teknologi Muhammadiyah Sumatera</p>
+            <p className="text-[11px] md:text-xs font-bold text-blue-400 mt-1">BEM Kabinet Biru Laut</p>
+            <p className="mt-1.5 text-[10px] md:text-[11px] text-gray-500 italic">"Tenang bukan berarti diam, dalam bukan berarti tenggelam."</p>
           </div>
           
-          <button 
-            onClick={() => setHalamanAktif("login")} 
-            className="text-xs text-gray-500 hover:text-white transition-colors cursor-pointer underline mt-2 md:mt-0"
-          >
-            Admin Login
-          </button>
+          <div className="flex flex-col items-center order-1 md:order-2">
+            <span className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 md:mb-3">Hubungi & Ikuti Kami</span>
+            <div className="flex flex-wrap justify-center gap-5 md:gap-6">
+              
+              <a href="https://youtube.com/@bemitms?si=2Zn-1f9g4d8lzB83" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer group">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span className="text-xs font-medium hidden md:inline">YouTube</span>
+              </a>
+
+              <a href="https://www.instagram.com/bemitms?igsh=dnMybmx0NGU5Nm51" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-pink-500 transition-colors cursor-pointer group">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+                <span className="text-xs font-medium hidden md:inline">Instagram</span>
+              </a>
+
+              <a href="https://www.tiktok.com/@bemiitms" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors cursor-pointer group">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+                <span className="text-xs font-medium hidden md:inline">TikTok</span>
+              </a>
+
+              <a href="https://api.whatsapp.com/send/?phone=6285175329877&text=bang+webnya+error&type=phone_number&app_absent=0" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-400 hover:text-green-500 transition-colors cursor-pointer group">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+                </svg>
+                <span className="text-xs font-medium hidden md:inline">WhatsApp</span>
+              </a>
+              
+            </div>
+          </div>
+          
+          <div className="order-2 md:order-3 mt-4 md:mt-0">
+            <button 
+              onClick={() => setHalamanAktif("login")} 
+              className="text-xs bg-gray-800 hover:bg-blue-900 text-gray-400 hover:text-white px-4 py-2 rounded-md transition-colors cursor-pointer border border-gray-700 shadow-sm flex items-center gap-1.5"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                <path d="M12 2C9.243 2 7 4.243 7 7v3H6c-1.103 0-2 .897-2 2v8c0 1.103.897 2 2 2h12c1.103 0 2-.897 2-2v-8c0-1.103-.897-2-2-2h-1V7c0-2.757-2.243-5-5-5zM9 7c0-1.654 1.346-3 3-3s3 1.346 3 3v3H9V7zm9 13H6v-8h12v8z"/>
+              </svg>
+              Admin Login
+            </button>
+          </div>
           
         </div>
       </footer>
