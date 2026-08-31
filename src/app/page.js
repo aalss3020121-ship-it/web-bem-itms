@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css';
+import { supabase } from '@/lib/supabase';
 
 // Import ReactQuill secara dinamis agar Next.js tidak error saat build
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -17,86 +18,84 @@ export default function Home() {
 
   const [editId, setEditId] = useState(null);
   const [likesCount, setLikesCount] = useState({});
-  const [userLikedStatus, setUserLikedStatus] = useState({});
-
-  const defaultBerita = [
-    { 
-      id: 1, 
-      judul: "BEM ITMS Gelar Diskusi Terbuka Transparansi Anggaran Bareng Rektorat", 
-      kategori: "MENSOPOL", 
-      waktu: "08 Agustus 2026, 08:30 WIB",
-      image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
-      isi: "<p>Badan Eksekutif Mahasiswa (BEM) ITMS sukses menyelenggarakan diskusi terbuka bersama pihak rektorat pada hari Jumat ini.</p><p><br></p><p>Acara ini membahas secara mendalam mengenai transparansi alokasi anggaran kegiatan mahasiswa serta fasilitas kampus demi mewujudkan tata kelola kampus yang akuntabel dan transparan.</p>" 
-    },
-    { 
-      id: 2, 
-      judul: "Tim E-Sports BEM ITMS Sabet Juara 1 Turnamen Mahasiswa Nasional", 
-      kategori: "MENPORA", 
-      waktu: "07 Agustus 2026, 14:15 WIB",
-      image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80",
-      isi: "<p>Prestasi membanggakan kembali ditorehkan oleh mahasiswa ITMS.</p><p><br></p><p>Tim E-Sports perwakilan kampus berhasil menduduki podium tertinggi dan menyabet gelar Juara 1 dalam ajang Turnamen E-Sports Antar Mahasiswa Tingkat Nasional setelah menaklukkan perwakilan universitas lain di babak final.</p>" 
-    },
-    { 
-      id: 3, 
-      judul: "Peluncuran Resmi Portal Berita Mahasiswa ITMS Berbasis Web", 
-      kategori: "MEN KOMINFO", 
-      waktu: "06 Agustus 2026, 10:00 WIB",
-      image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80",
-      isi: "<p>Kementerian Komunikasi dan Informasi BEM ITMS secara resmi meluncurkan portal berita berbasis web modern.</p><p><br></p><p>Platform ini diharapkan dapat menjadi pusat informasi, wadah aspirasi mahasiswa, serta sarana publikasi kegiatan seluruh kementerian di lingkungan kampus ITMS.</p>" 
-    },
-    { 
-      id: 4, 
-      judul: "Program Pengabdian Desa: Mahasiswa ITMS Bangun Fasilitas Air Bersih", 
-      kategori: "MENDAGRI", 
-      waktu: "05 Agustus 2026, 09:45 WIB",
-      image: "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=800&q=80",
-      isi: "<p>Sebagai wujud nyata Tri Dharma Perguruan Tinggi, Kementerian Dalam Negeri BEM ITMS mengerahkan mahasiswa untuk turun langsung ke masyarakat.</p><p><br></p><p>Melalui program pengabdian desa, tim mahasiswa sukses membangun fasilitas saluran air bersih yang kini dapat digunakan oleh ratusan warga desa binaan.</p>" 
-    },
-  ];
-
-  const [daftarBerita, setDaftarBerita] = useState(defaultBerita);
-
-  useEffect(() => {
-    // Menggunakan key _v2 agar memori cache format tanggal lama terhapus
-    const savedBerita = localStorage.getItem('berita_bem_itms_v2');
-    const savedLikesCount = localStorage.getItem('likes_count_v2');
-    const savedUserLiked = localStorage.getItem('user_liked_status_v2');
-
-    if (savedBerita) { 
-      try { 
-        setDaftarBerita(JSON.parse(savedBerita)); 
-      } catch (e) { 
-        console.error(e); 
-      } 
+  const [userLikedStatus, setUserLikedStatus] = useState(() => {
+    if (typeof window === 'undefined') {
+      return {};
     }
-    
-    if (savedLikesCount) { 
-      try { 
-        setLikesCount(JSON.parse(savedLikesCount)); 
-      } catch (e) { 
-        console.error(e); 
-      } 
+
+    try {
+      return JSON.parse(localStorage.getItem('user_liked_status_v2') || '{}');
+    } catch (e) {
+      console.error(e);
+      return {};
     }
-    
-    if (savedUserLiked) { 
-      try { 
-        setUserLikedStatus(JSON.parse(savedUserLiked)); 
-      } catch (e) { 
-        console.error(e); 
-      } 
+  });
+
+  const [daftarBerita, setDaftarBerita] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchBerita = useCallback(async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('berita')
+        .select('*');
+
+      if (fetchError) throw fetchError;
+
+      const beritaTersusun = [...(data || [])].sort((a, b) => {
+        if (a.created_at || b.created_at) {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
+
+        if (typeof a.id === "number" && typeof b.id === "number") {
+          return b.id - a.id;
+        }
+
+        return 0;
+      });
+
+      setDaftarBerita(beritaTersusun);
+
+      // Build likes count dari data Supabase
+      const counts = {};
+      beritaTersusun.forEach((item) => {
+        counts[item.id] = item.likes || 0;
+      });
+      setLikesCount(counts);
+      setError(null);
+    } catch (err) {
+      console.error('Gagal fetch berita:', err);
+      setError('Gagal memuat berita. Periksa koneksi internet.');
+    } finally {
+      setLoading(false);
     }
   }, []);
+
+  // Fetch berita dari Supabase saat pertama kali load
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      fetchBerita();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchBerita]);
+
+  const handleRefreshBerita = () => {
+    setLoading(true);
+    fetchBerita();
+  };
 
   const [judulInput, setJudulInput] = useState("");
   const [kategoriInput, setKategoriInput] = useState("MENSOPOL");
   const [isiInput, setIsiInput] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
-  const handleLike = (id, e) => {
+  const handleLike = async (id, e) => {
     e.stopPropagation();
     const isCurrentlyLiked = !!userLikedStatus[id];
-    const newLikesCount = { ...likesCount };
     const newUserLikedStatus = { ...userLikedStatus };
+    const newLikesCount = { ...likesCount };
 
     if (isCurrentlyLiked) {
       newLikesCount[id] = Math.max(0, (newLikesCount[id] || 0) - 1);
@@ -106,10 +105,22 @@ export default function Home() {
       newUserLikedStatus[id] = true;
     }
 
+    // Update state lokal dulu (optimistic update)
     setLikesCount(newLikesCount);
     setUserLikedStatus(newUserLikedStatus);
-    localStorage.setItem('likes_count_v2', JSON.stringify(newLikesCount));
     localStorage.setItem('user_liked_status_v2', JSON.stringify(newUserLikedStatus));
+
+    // Update di Supabase
+    try {
+      const { error: updateError } = await supabase
+        .from('berita')
+        .update({ likes: newLikesCount[id] })
+        .eq('id', id);
+      
+      if (updateError) throw updateError;
+    } catch (err) {
+      console.error('Gagal update like:', err);
+    }
   };
 
   const handleShare = async (berita, e) => {
@@ -161,50 +172,61 @@ export default function Home() {
     ]
   };
 
-  const prosesSimpanBerita = (imageData) => {
-    let beritaBaruList;
-    
-    if (editId) {
-      beritaBaruList = daftarBerita.map((item) => {
-        if (item.id === editId) {
-          return { 
-            ...item, 
-            judul: judulInput, 
-            kategori: kategoriInput, 
-            isi: isiInput, 
-            image: imageData ? imageData : item.image 
-          };
+  const prosesSimpanBerita = async (imageData) => {
+    try {
+      if (editId) {
+        // UPDATE berita di Supabase
+        const updateData = { 
+          judul: judulInput, 
+          kategori: kategoriInput, 
+          isi: isiInput 
+        };
+        if (imageData) {
+          updateData.image = imageData;
         }
-        return item;
-      });
-      alert("Berita diperbarui!");
-    } else {
-      const defaultImages = [
-        "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80", 
-        "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80"
-      ];
-      const randomImage = defaultImages[Math.floor(Math.random() * defaultImages.length)];
+
+        const { error: updateError } = await supabase
+          .from('berita')
+          .update(updateData)
+          .eq('id', editId);
+
+        if (updateError) throw updateError;
+        alert("Berita diperbarui!");
+      } else {
+        // INSERT berita baru ke Supabase
+        const defaultImages = [
+          "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80", 
+          "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80"
+        ];
+        const randomImage = defaultImages[Math.floor(Math.random() * defaultImages.length)];
+        
+        const beritaBaru = { 
+          judul: judulInput, 
+          kategori: kategoriInput, 
+          waktu: buatWaktuFormat(), 
+          image: imageData || randomImage, 
+          isi: isiInput
+        };
+
+        const { error: insertError } = await supabase
+          .from('berita')
+          .insert([beritaBaru]);
+
+        if (insertError) throw insertError;
+        alert("Berita diposting!");
+      }
       
-      const beritaBaru = { 
-        id: Date.now(), 
-        judul: judulInput, 
-        kategori: kategoriInput, 
-        waktu: buatWaktuFormat(), 
-        image: imageData || randomImage, 
-        isi: isiInput 
-      };
+      // Refresh data dari Supabase
+      await fetchBerita();
       
-      beritaBaruList = [beritaBaru, ...daftarBerita];
-      alert("Berita diposting!");
+      setJudulInput(""); 
+      setIsiInput(""); 
+      setImageFile(null); 
+      setEditId(null);
+    } catch (err) {
+      console.error('Gagal menyimpan berita:', err);
+      alert("Gagal menyimpan berita. Cek koneksi internet.");
     }
-    
-    setDaftarBerita(beritaBaruList);
-    localStorage.setItem('berita_bem_itms_v2', JSON.stringify(beritaBaruList));
-    
-    setJudulInput(""); 
-    setIsiInput(""); 
-    setImageFile(null); 
-    setEditId(null);
   };
 
   const handleSimpan = (e) => {
@@ -240,14 +262,25 @@ export default function Home() {
     setImageFile(null); 
   };
 
-  const handleHapusBerita = (id) => {
+  const handleHapusBerita = async (id) => {
     if (confirm("Hapus berita permanen?")) {
-      const beritaBaruList = daftarBerita.filter((berita) => berita.id !== id);
-      setDaftarBerita(beritaBaruList);
-      localStorage.setItem('berita_bem_itms_v2', JSON.stringify(beritaBaruList));
-      
-      if (editId === id) {
-        handleBatalEdit();
+      try {
+        const { error: deleteError } = await supabase
+          .from('berita')
+          .delete()
+          .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        // Refresh data dari Supabase
+        await fetchBerita();
+        
+        if (editId === id) {
+          handleBatalEdit();
+        }
+      } catch (err) {
+        console.error('Gagal menghapus berita:', err);
+        alert("Gagal menghapus berita. Cek koneksi internet.");
       }
     }
   };
@@ -373,7 +406,7 @@ export default function Home() {
               <p>Badan Eksekutif Mahasiswa (BEM) ITMS Kabinet Biru Laut merupakan lembaga eksekutif tertinggi di tingkat mahasiswa kampus ITMS yang bergerak aktif sebagai wadah penyalur aspirasi, penggerak perubahan, serta pusat pengembangan potensi mahasiswa.</p>
               
               <div className="bg-blue-50 p-5 md:p-6 rounded-xl border-l-4 border-blue-600 italic text-blue-900 font-semibold text-center shadow-inner text-sm md:text-base">
-                "Tenang bukan berarti diam, dalam bukan berarti tenggelam - kami bergerak seperti laut, membawa perubahan."
+                &quot;Tenang bukan berarti diam, dalam bukan berarti tenggelam - kami bergerak seperti laut, membawa perubahan.&quot;
               </div>
               
               <div>
@@ -484,10 +517,35 @@ export default function Home() {
               <h2 className="text-xl md:text-2xl font-bold mb-5 md:mb-6 text-gray-900 border-l-4 border-blue-700 pl-3">
                 {kategoriAktif === "SEMUA" ? "Berita Terbaru" : `Berita Kategori: ${kategoriAktif}`}
               </h2>
-              
-              {beritaTerpilih.length === 0 ? (
+
+              {/* Loading State */}
+              {loading && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-700 rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-500 text-sm font-medium">Memuat berita dari server...</p>
+                </div>
+              )}
+
+              {/* Error State */}
+              {!loading && error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">
+                  <p className="font-bold mb-1">⚠️ Terjadi Kesalahan</p>
+                  <p>{error}</p>
+                  <button 
+                    onClick={handleRefreshBerita} 
+                    className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-md cursor-pointer"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              )}
+
+              {/* Data Loaded */}
+              {!loading && !error && beritaTerpilih.length === 0 && (
                 <p className="text-gray-500 italic py-6 text-sm">Tidak ada berita yang ditemukan.</p>
-              ) : (
+              )}
+
+              {!loading && !error && beritaTerpilih.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
                   {beritaTerpilih.map((berita) => (
                     <article 
@@ -742,7 +800,7 @@ export default function Home() {
           <div className="flex flex-col items-center md:items-start order-3 md:order-1 mt-4 md:mt-0">
             <p className="text-xs md:text-sm text-gray-300">© 2026 Institut Teknologi Muhammadiyah Sumatera</p>
             <p className="text-[11px] md:text-xs font-bold text-blue-400 mt-1">BEM Kabinet Biru Laut</p>
-            <p className="mt-1.5 text-[10px] md:text-[11px] text-gray-500 italic">"Tenang bukan berarti diam, dalam bukan berarti tenggelam."</p>
+            <p className="mt-1.5 text-[10px] md:text-[11px] text-gray-500 italic">&quot;Tenang bukan berarti diam, dalam bukan berarti tenggelam.&quot;</p>
           </div>
           
           <div className="flex flex-col items-center order-1 md:order-2">
