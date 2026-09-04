@@ -87,7 +87,8 @@ export default function Home() {
   };
 
   const [judulInput, setJudulInput] = useState("");
-  const [kategoriInput, setKategoriInput] = useState("MENSOPOL");
+  const [kategoriInput, setKategoriInput] = useState("BERITA UTAMA");
+  const [penulisInput, setPenulisInput] = useState("PRESIDEN BEM");
   const [isiInput, setIsiInput] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
@@ -179,6 +180,7 @@ export default function Home() {
         const updateData = { 
           judul: judulInput, 
           kategori: kategoriInput, 
+          penulis: penulisInput,
           isi: isiInput 
         };
         if (imageData) {
@@ -203,6 +205,7 @@ export default function Home() {
         const beritaBaru = { 
           judul: judulInput, 
           kategori: kategoriInput, 
+          penulis: penulisInput,
           waktu: buatWaktuFormat(), 
           image: imageData || randomImage, 
           isi: isiInput
@@ -251,6 +254,7 @@ export default function Home() {
     setEditId(berita.id); 
     setJudulInput(berita.judul); 
     setKategoriInput(berita.kategori); 
+    setPenulisInput(berita.penulis || "PRESIDEN BEM");
     setIsiInput(berita.isi);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -285,15 +289,14 @@ export default function Home() {
     }
   };
 
-  const kementerian = [
+  const kategoriBerita = [
     "SEMUA", 
-    "MENSOPOL", 
-    "MENPORA", 
-    "MEN KOMINFO", 
-    "MENDAGRI", 
-    "MEN AGAMA", 
-    "MEN BUMN", 
-    "MEN LUAR NEGERI"
+    "BERITA UTAMA", 
+    "INFO AKADEMIK", 
+    "KAJIAN & OPINI", 
+    "EVENT BEM", 
+    "PENGUMUMAN",
+    "EKSTERNAL"
   ];
 
   const beritaTerpilih = daftarBerita.filter((berita) => {
@@ -435,9 +438,16 @@ export default function Home() {
               ← Kembali ke Beranda
             </button>
             
-            <span className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded">
-              {beritaPilihan.kategori}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded">
+                {beritaPilihan.kategori}
+              </span>
+              {beritaPilihan.penulis && (
+                <span className="text-[10px] md:text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded">
+                  Oleh: {beritaPilihan.penulis}
+                </span>
+              )}
+            </div>
             
             <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 mt-3 mb-4 leading-snug">
               {beritaPilihan.judul}
@@ -498,16 +508,16 @@ export default function Home() {
             
             <section className="mb-8 md:mb-10">
               <h2 className="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">
-                Jelajahi Berdasarkan Kementerian:
+                Jelajahi Berdasarkan Kategori:
               </h2>
               <div className="flex flex-wrap gap-2 md:gap-3">
-                {kementerian.map((menteri, index) => (
+                {kategoriBerita.map((kat, index) => (
                   <button 
                     key={index} 
-                    onClick={() => setKategoriAktif(menteri)} 
-                    className={`px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-sm font-bold rounded-md transition-all shadow-sm border cursor-pointer ${kategoriAktif === menteri ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-200 hover:bg-blue-100"}`}
+                    onClick={() => setKategoriAktif(kat)} 
+                    className={`px-3 py-1.5 md:px-4 md:py-2 text-[10px] md:text-sm font-bold rounded-md transition-all shadow-sm border cursor-pointer ${kategoriAktif === kat ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-200 hover:bg-blue-100"}`}
                   >
-                    {menteri}
+                    {kat}
                   </button>
                 ))}
               </div>
@@ -562,9 +572,16 @@ export default function Home() {
                       
                       <div className="p-4 md:p-5 flex flex-col flex-grow justify-between">
                         <div>
-                          <span className="text-[10px] md:text-xs font-bold text-blue-600 mb-2 block uppercase tracking-wider">
-                            {berita.kategori}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider">
+                              {berita.kategori}
+                            </span>
+                            {berita.penulis && (
+                              <span className="text-[9px] md:text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                Oleh: {berita.penulis}
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-base md:text-lg font-bold text-gray-900 leading-snug mb-3 group-hover:text-blue-700 transition-colors">
                             {berita.judul}
                           </h3>
@@ -673,12 +690,31 @@ export default function Home() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Pilih Kementerian</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Kategori Berita</label>
                   <select 
                     value={kategoriInput} 
                     onChange={(e) => setKategoriInput(e.target.value)} 
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm text-black bg-white cursor-pointer"
                   >
+                    <option value="BERITA UTAMA">BERITA UTAMA</option>
+                    <option value="INFO AKADEMIK">INFO AKADEMIK</option>
+                    <option value="KAJIAN & OPINI">KAJIAN & OPINI</option>
+                    <option value="EVENT BEM">EVENT BEM</option>
+                    <option value="PENGUMUMAN">PENGUMUMAN</option>
+                    <option value="EKSTERNAL">EKSTERNAL</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Asal / Penulis</label>
+                  <select 
+                    value={penulisInput} 
+                    onChange={(e) => setPenulisInput(e.target.value)} 
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm text-black bg-white cursor-pointer"
+                  >
+                    <option value="PRESIDEN BEM">PRESIDEN BEM</option>
+                    <option value="WAKIL PRESIDEN BEM">WAKIL PRESIDEN BEM</option>
+                    <option value="SEKRETARIS BEM">SEKRETARIS BEM</option>
                     <option value="MENSOPOL">MENSOPOL</option>
                     <option value="MENPORA">MENPORA</option>
                     <option value="MEN KOMINFO">MEN KOMINFO</option>
@@ -759,9 +795,16 @@ export default function Home() {
                       className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-gray-200 rounded-lg gap-3 bg-gray-50"
                     >
                       <div>
-                        <span className="text-[10px] md:text-xs font-bold text-blue-600 uppercase">
-                          {item.kategori}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] md:text-xs font-bold text-blue-600 uppercase">
+                            {item.kategori}
+                          </span>
+                          {item.penulis && (
+                            <span className="text-[9px] md:text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                              Oleh: {item.penulis}
+                            </span>
+                          )}
+                        </div>
                         <h4 className="font-bold text-gray-900 text-sm md:text-base leading-tight mt-1">
                           {item.judul}
                         </h4>
