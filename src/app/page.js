@@ -316,23 +316,30 @@ export default function Home() {
           -webkit-hyphens: none !important;
         }
 
+        html, body {
+          max-width: 100%;
+          overflow-x: hidden;
+        }
+
         /* RESET KHUSUS UNTUK KONTEN BERITA */
         .quill-content {
-          width: 100% !important;
+          display: block !important;
+          box-sizing: border-box !important;
+          width: auto !important;
           max-width: 100% !important;
           min-width: 0 !important;
-          overflow-wrap: normal !important;
+          overflow: hidden !important;
+          overflow-wrap: break-word !important;
           word-break: normal !important;
-          white-space: pre-wrap !important;
-          text-wrap: wrap !important;
+          white-space: normal !important;
           hyphens: none !important;
         }
 
         .quill-content, .quill-content * {
+          box-sizing: border-box !important;
           word-break: normal !important;
-          overflow-wrap: normal !important;
-          white-space: pre-wrap !important;
-          text-wrap: wrap !important;
+          overflow-wrap: break-word !important;
+          white-space: normal !important;
           hyphens: none !important;
         }
 
@@ -343,7 +350,7 @@ export default function Home() {
         
         .quill-content p { 
           display: block !important;
-          width: 100% !important;
+          width: auto !important;
           max-width: 100% !important;
           overflow: visible !important;
           margin-bottom: 1em; 
