@@ -310,7 +310,7 @@ export default function Home() {
       <style jsx global>{`
         /* PERBAIKAN MUTLAK: Paksa semua elemen teks di seluruh web agar tidak memotong kata */
         body, h1, h2, h3, h4, p, div, span, article {
-          overflow-wrap: break-word !important;
+          overflow-wrap: normal !important;
           word-break: normal !important;
           hyphens: none !important;
           -webkit-hyphens: none !important;
@@ -328,8 +328,8 @@ export default function Home() {
           width: auto !important;
           max-width: 100% !important;
           min-width: 0 !important;
-          overflow: hidden !important;
-          overflow-wrap: break-word !important;
+          overflow: visible !important;
+          overflow-wrap: normal !important;
           word-break: normal !important;
           white-space: normal !important;
           hyphens: none !important;
@@ -338,7 +338,7 @@ export default function Home() {
         .quill-content, .quill-content * {
           box-sizing: border-box !important;
           word-break: normal !important;
-          overflow-wrap: break-word !important;
+          overflow-wrap: normal !important;
           white-space: normal !important;
           hyphens: none !important;
         }
