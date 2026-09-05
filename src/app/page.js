@@ -305,6 +305,9 @@ export default function Home() {
     return sesuaiKategori && sesuaiPencarian;
   });
 
+  const normalisasiIsiBerita = (isi) => (isi || '')
+    .replace(/&nbsp;|&#160;|&#xA0;|\u00a0/gi, ' ');
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
       <style jsx global>{`
@@ -513,7 +516,7 @@ export default function Home() {
             <div 
                 className="quill-content text-gray-700 text-sm md:text-lg leading-relaxed mb-8"
                 style={{ whiteSpace: "normal", overflowWrap: "normal", wordBreak: "normal", maxWidth: "100%" }}
-              dangerouslySetInnerHTML={{ __html: beritaPilihan.isi }}
+              dangerouslySetInnerHTML={{ __html: normalisasiIsiBerita(beritaPilihan.isi) }}
             />
             
             <div className="flex flex-wrap gap-3 md:gap-4 border-t pt-4">
