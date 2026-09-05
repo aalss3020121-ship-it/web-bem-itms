@@ -308,18 +308,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
       <style jsx global>{`
-        /* PERBAIKAN BARU: Memaksa turun baris secara utuh dan rapi */
-        .quill-content {
-          overflow-wrap: break-word;
-          word-break: normal;
-        }
-        .quill-content * {
+        /* PERBAIKAN FINAL: Reset total tata letak teks agar rapi tanpa spasi raksasa */
+        .quill-content, .quill-content * {
+          word-break: normal !important; 
+          overflow-wrap: break-word !important;
           white-space: normal !important;
+          hyphens: none !important;
+        }
+        
+        .quill-content p { 
+          margin-bottom: 1em; 
+          text-align: left !important; 
         }
         
         .quill-content h1 { font-size: 1.75em; font-weight: bold; margin-bottom: 0.5em; }
         .quill-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
-        .quill-content p { margin-bottom: 1em; text-align: justify; }
         .quill-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
         .quill-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
         .quill-content strong { font-weight: bold; }
