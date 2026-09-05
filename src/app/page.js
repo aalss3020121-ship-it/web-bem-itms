@@ -308,9 +308,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
       <style jsx global>{`
-        /* PERBAIKAN FINAL: Reset total tata letak teks agar rapi tanpa spasi raksasa */
+        /* PERBAIKAN MUTLAK: Paksa semua elemen teks di seluruh web agar tidak memotong kata */
+        body, h1, h2, h3, h4, p, div, span, article {
+          overflow-wrap: break-word !important;
+          word-break: normal !important;
+          hyphens: none !important;
+          -webkit-hyphens: none !important;
+        }
+
+        /* RESET KHUSUS UNTUK KONTEN BERITA */
         .quill-content, .quill-content * {
-          word-break: normal !important; 
+          word-break: normal !important;
           overflow-wrap: break-word !important;
           white-space: normal !important;
           hyphens: none !important;
