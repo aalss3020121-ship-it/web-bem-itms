@@ -319,7 +319,7 @@ export default function Home() {
         /* RESET KHUSUS UNTUK KONTEN BERITA */
         .quill-content, .quill-content * {
           word-break: normal !important;
-          overflow-wrap: break-word !important;
+          overflow-wrap: normal !important;
           white-space: normal !important;
           hyphens: none !important;
         }
@@ -482,7 +482,7 @@ export default function Home() {
             </div>
             
             <div 
-              className="quill-content text-gray-700 text-sm md:text-lg leading-relaxed mb-8 break-words"
+                className="quill-content text-gray-700 text-sm md:text-lg leading-relaxed mb-8"
               dangerouslySetInnerHTML={{ __html: beritaPilihan.isi }}
             />
             
