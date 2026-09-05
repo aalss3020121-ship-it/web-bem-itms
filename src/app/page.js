@@ -312,6 +312,7 @@ export default function Home() {
         body, h1, h2, h3, h4, p, div, span, article {
           overflow-wrap: normal !important;
           word-break: normal !important;
+          white-space: normal !important;
           hyphens: none !important;
           -webkit-hyphens: none !important;
         }
@@ -511,6 +512,7 @@ export default function Home() {
             
             <div 
                 className="quill-content text-gray-700 text-sm md:text-lg leading-relaxed mb-8"
+                style={{ whiteSpace: "normal", overflowWrap: "normal", wordBreak: "normal", maxWidth: "100%" }}
               dangerouslySetInnerHTML={{ __html: beritaPilihan.isi }}
             />
             
