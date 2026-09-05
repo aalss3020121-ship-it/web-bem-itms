@@ -81,6 +81,27 @@ export default function Home() {
     return () => window.clearTimeout(timeoutId);
   }, [fetchBerita]);
 
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.register('/sw.js').catch((registrationError) => {
+      console.error('Gagal mendaftarkan PWA service worker:', registrationError);
+    });
+  }, []);
+
+  useEffect(() => {
+    const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+    if (!appId) return;
+
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      await OneSignal.init({
+        appId,
+        allowLocalhostAsSecureOrigin: process.env.NODE_ENV !== 'production'
+      });
+    });
+  }, []);
+
   const handleRefreshBerita = () => {
     setLoading(true);
     fetchBerita();
@@ -140,6 +161,13 @@ export default function Home() {
       navigator.clipboard.writeText(window.location.href);
       alert(`Tautan berita berhasil disalin!`);
     }
+  };
+
+  const handleAktifkanNotifikasi = () => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      await OneSignal.Notifications.requestPermission();
+    });
   };
 
   const handleLoginAdmin = (e) => {
@@ -216,6 +244,20 @@ export default function Home() {
           .insert([beritaBaru]);
 
         if (insertError) throw insertError;
+
+        try {
+          await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: beritaBaru.judul,
+              category: beritaBaru.kategori,
+              url: window.location.origin
+            })
+          });
+        } catch (notificationError) {
+          console.error('Gagal mengirim notifikasi:', notificationError);
+        }
         alert("Berita diposting!");
       }
       
@@ -935,6 +977,12 @@ export default function Home() {
           </div>
           
           <div className="order-2 md:order-3 mt-4 md:mt-0">
+            <button
+              onClick={handleAktifkanNotifikasi}
+              className="text-xs bg-blue-950 hover:bg-blue-800 text-blue-200 hover:text-white px-4 py-2 rounded-md transition-colors cursor-pointer border border-blue-800 shadow-sm"
+            >
+              Aktifkan Notifikasi
+            </button>
             <button 
               onClick={() => setHalamanAktif("login")} 
               className="text-xs bg-gray-800 hover:bg-blue-900 text-gray-400 hover:text-white px-4 py-2 rounded-md transition-colors cursor-pointer border border-gray-700 shadow-sm flex items-center gap-1.5"
