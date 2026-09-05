@@ -317,11 +317,26 @@ export default function Home() {
         }
 
         /* RESET KHUSUS UNTUK KONTEN BERITA */
-        .quill-content, .quill-content * {
+        .quill-content {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          overflow-wrap: break-word !important;
           word-break: normal !important;
-          overflow-wrap: normal !important;
           white-space: normal !important;
           hyphens: none !important;
+        }
+
+        .quill-content, .quill-content * {
+          word-break: normal !important;
+          overflow-wrap: break-word !important;
+          white-space: normal !important;
+          hyphens: none !important;
+        }
+
+        .quill-content img, .quill-content video, .quill-content iframe {
+          max-width: 100% !important;
+          height: auto !important;
         }
         
         .quill-content p { 
@@ -447,7 +462,7 @@ export default function Home() {
 
         {/* HALAMAN BACA DETAIL BERITA */}
         {halamanAktif === "detail" && beritaPilihan && (
-          <div className="max-w-3xl mx-auto bg-white p-5 md:p-10 rounded-xl shadow-md border border-gray-200 overflow-hidden md:mt-6 mb-8 md:mb-12">
+          <div className="w-full max-w-3xl min-w-0 mx-auto bg-white p-5 md:p-10 rounded-xl shadow-md border border-gray-200 overflow-hidden md:mt-6 mb-8 md:mb-12">
             <button 
               onClick={() => { 
                 setHalamanAktif("beranda"); 
