@@ -322,13 +322,13 @@ export default function Home() {
           max-width: 100% !important;
           min-width: 0 !important;
           overflow-wrap: normal !important;
-          word-break: keep-all !important;
+          word-break: normal !important;
           white-space: normal !important;
           hyphens: none !important;
         }
 
         .quill-content, .quill-content * {
-          word-break: keep-all !important;
+          word-break: normal !important;
           overflow-wrap: normal !important;
           white-space: normal !important;
           hyphens: none !important;
@@ -340,6 +340,9 @@ export default function Home() {
         }
         
         .quill-content p { 
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
           margin-bottom: 1em; 
           text-align: left !important; 
         }
