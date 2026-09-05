@@ -308,19 +308,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
       <style jsx global>{`
-        /* TAMBAHAN BARU: Memaksa teks panjang & hasil copy-paste turun baris */
+        /* PERBAIKAN BARU: Memaksa turun baris secara utuh dan rapi */
         .quill-content {
           overflow-wrap: break-word;
-          word-wrap: break-word;
-          word-break: break-word;
+          word-break: normal;
         }
         .quill-content * {
-          white-space: pre-wrap !important;
+          white-space: normal !important;
         }
         
         .quill-content h1 { font-size: 1.75em; font-weight: bold; margin-bottom: 0.5em; }
         .quill-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
-        .quill-content p { margin-bottom: 1em; }
+        .quill-content p { margin-bottom: 1em; text-align: justify; }
         .quill-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
         .quill-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
         .quill-content strong { font-weight: bold; }
