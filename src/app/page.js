@@ -22,7 +22,7 @@ const LOKASI_DEFAULT = {
   label: 'Medan'
 };
 
-const GALERI_TENTANG = [
+const GALERI_DEFAULT = [
   {
     src: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=85',
     alt: 'Mahasiswa berdiskusi bersama',
@@ -47,7 +47,7 @@ const GALERI_TENTANG = [
 
 export default function Home() {
   
-  const [halamanAktif, setHalamanAktif] = useState("beranda"); // "beranda", "ibadah", "login", "admin", "detail", "tentang"
+  const [halamanAktif, setHalamanAktif] = useState("beranda"); // "beranda", "ibadah", "login", "admin", "detail", "tentang", "galeri"
   const [kategoriAktif, setKategoriAktif] = useState("SEMUA");
   const [searchTerm, setSearchTerm] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -69,6 +69,11 @@ export default function Home() {
   });
 
   const [daftarBerita, setDaftarBerita] = useState([]);
+  const [daftarGaleri, setDaftarGaleri] = useState(GALERI_DEFAULT);
+  const [galeriEditId, setGaleriEditId] = useState(null);
+  const [galeriJudulInput, setGaleriJudulInput] = useState("");
+  const [galeriAltInput, setGaleriAltInput] = useState("");
+  const [galeriImageFile, setGaleriImageFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [jadwalSholat, setJadwalSholat] = useState(null);
@@ -115,6 +120,20 @@ export default function Home() {
     }
   }, []);
 
+  const fetchGaleri = useCallback(async () => {
+    const { data, error: fetchError } = await supabase
+      .from('galeri')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (fetchError) {
+      console.error('Gagal fetch galeri:', fetchError);
+      return;
+    }
+
+    setDaftarGaleri(data?.length ? data : GALERI_DEFAULT);
+  }, []);
+
   // Fetch berita dari Supabase saat pertama kali load
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -123,6 +142,14 @@ export default function Home() {
 
     return () => window.clearTimeout(timeoutId);
   }, [fetchBerita]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      fetchGaleri();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchGaleri]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -484,6 +511,72 @@ export default function Home() {
     }
   };
 
+  const resetFormGaleri = () => {
+    setGaleriEditId(null);
+    setGaleriJudulInput("");
+    setGaleriAltInput("");
+    setGaleriImageFile(null);
+  };
+
+  const handleSimpanGaleri = (e) => {
+    e.preventDefault();
+    if (!galeriJudulInput.trim() || (!galeriImageFile && !galeriEditId)) {
+      alert('Judul dan foto galeri wajib diisi.');
+      return;
+    }
+
+    const simpanData = async (imageData) => {
+      const galeriData = {
+        judul: galeriJudulInput.trim(),
+        alt: galeriAltInput.trim() || galeriJudulInput.trim()
+      };
+      if (imageData) galeriData.src = imageData;
+
+      const query = galeriEditId
+        ? supabase.from('galeri').update(galeriData).eq('id', galeriEditId)
+        : supabase.from('galeri').insert([galeriData]);
+      const { error: saveError } = await query;
+
+      if (saveError) {
+        console.error('Gagal menyimpan galeri:', saveError);
+        alert('Gagal menyimpan galeri. Pastikan tabel galeri sudah tersedia di Supabase.');
+        return;
+      }
+
+      await fetchGaleri();
+      resetFormGaleri();
+    };
+
+    if (galeriImageFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => simpanData(reader.result);
+      reader.readAsDataURL(galeriImageFile);
+    } else {
+      simpanData(null);
+    }
+  };
+
+  const handleMulaiEditGaleri = (foto) => {
+    setGaleriEditId(foto.id);
+    setGaleriJudulInput(foto.judul || foto.label || '');
+    setGaleriAltInput(foto.alt || '');
+    setGaleriImageFile(null);
+  };
+
+  const handleHapusGaleri = async (id) => {
+    if (!confirm('Hapus foto galeri permanen?')) return;
+
+    const { error: deleteError } = await supabase.from('galeri').delete().eq('id', id);
+    if (deleteError) {
+      console.error('Gagal menghapus galeri:', deleteError);
+      alert('Gagal menghapus foto galeri.');
+      return;
+    }
+
+    await fetchGaleri();
+    if (galeriEditId === id) resetFormGaleri();
+  };
+
   const kategoriBerita = [
     "SEMUA", 
     "BERITA UTAMA", 
@@ -623,6 +716,15 @@ export default function Home() {
             >
               Tentang Kami
             </button>
+            <button 
+              onClick={() => { 
+                setHalamanAktif("galeri"); 
+                setBeritaPilihan(null); 
+              }} 
+              className="hover:text-blue-200 cursor-pointer"
+            >
+              Galeri
+            </button>
           </div>
         </div>
       </nav>
@@ -632,8 +734,7 @@ export default function Home() {
         
         {/* HALAMAN TENTANG KAMI */}
         {halamanAktif === "tentang" && (
-          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] gap-6 items-start">
-            <section className="bg-white p-6 md:p-10 rounded-xl shadow-md border border-gray-200">
+          <div className="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-md border border-gray-200">
             <button 
               onClick={() => setHalamanAktif("beranda")} 
               className="text-sm font-bold text-blue-700 hover:underline mb-6 block cursor-pointer"
@@ -668,26 +769,33 @@ export default function Home() {
                 </ul>
               </div>
             </div>
-            </section>
+          </div>
+        )}
 
-            <aside className="bg-blue-950 p-5 md:p-6 rounded-xl shadow-md border border-blue-900 text-white lg:sticky lg:top-24">
-              <div className="mb-5">
-                <p className="text-blue-300 text-[11px] font-bold uppercase tracking-[0.2em]">Dokumentasi gerakan</p>
-                <h2 className="text-2xl font-extrabold mt-1">Cerita dari lapangan</h2>
-                <p className="text-blue-100 text-sm mt-2 leading-relaxed">Merekam langkah kecil, ruang kolaborasi, dan energi mahasiswa ITMS.</p>
+        {/* HALAMAN GALERI */}
+        {halamanAktif === "galeri" && (
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6">
+              <div>
+                <p className="text-blue-600 text-xs font-bold uppercase tracking-[0.2em]">Dokumentasi gerakan</p>
+                <h1 className="text-3xl md:text-4xl font-extrabold text-blue-950 mt-1">Galeri Kegiatan</h1>
+                <p className="text-gray-600 text-sm mt-2">Ruang untuk menyimpan cerita dan momen kegiatan BEM ITMS.</p>
               </div>
+              <button onClick={() => setHalamanAktif("beranda")} className="text-sm font-bold text-blue-700 hover:underline cursor-pointer self-start md:self-auto">
+                ← Kembali ke Beranda
+              </button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {GALERI_TENTANG.map((foto, index) => (
-                  <figure key={foto.src} className={`group relative overflow-hidden rounded-lg bg-blue-900 ${index === 0 ? 'col-span-2 aspect-[2/1]' : 'aspect-square'}`}>
-                    <img src={foto.src} alt={foto.alt} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                    <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-950/90 to-transparent px-3 pb-2 pt-8 text-[11px] font-bold text-white">
-                      {foto.label}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
-            </aside>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {daftarGaleri.map((foto, index) => (
+                <figure key={foto.id || foto.src} className={`group relative overflow-hidden rounded-xl bg-blue-950 shadow-md ${index === 0 ? 'sm:col-span-2 lg:col-span-2 aspect-[2/1]' : 'aspect-[4/3]'}`}>
+                  <img src={foto.src} alt={foto.alt || foto.judul || foto.label} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-950/95 to-transparent px-4 pb-4 pt-16 text-sm font-bold text-white">
+                    {foto.judul || foto.label}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1186,6 +1294,83 @@ export default function Home() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className={`p-5 md:p-8 rounded-xl shadow-lg border transition-all ${galeriEditId ? "bg-amber-50 border-amber-300" : "bg-white border-gray-200"}`}>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900">
+                    {galeriEditId ? 'Edit Foto Galeri' : 'Tambah Foto Galeri'}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">Kelola dokumentasi yang tampil di halaman Galeri.</p>
+                </div>
+                {galeriEditId && (
+                  <button type="button" onClick={resetFormGaleri} className="text-xs font-bold text-gray-600 hover:text-gray-900 cursor-pointer">
+                    Batal Edit
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleSimpanGaleri} className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Judul Foto</label>
+                  <input
+                    type="text"
+                    value={galeriJudulInput}
+                    onChange={(e) => setGaleriJudulInput(e.target.value)}
+                    placeholder="Contoh: Rapat kerja kabinet"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm text-black bg-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Deskripsi Singkat</label>
+                  <input
+                    type="text"
+                    value={galeriAltInput}
+                    onChange={(e) => setGaleriAltInput(e.target.value)}
+                    placeholder="Deskripsi untuk aksesibilitas"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm text-black bg-white"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">{galeriEditId ? 'Ganti Foto (Opsional)' : 'Upload Foto'}</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setGaleriImageFile(e.target.files[0])}
+                    className="w-full text-xs md:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 cursor-pointer border border-gray-300 rounded-md p-1 bg-white"
+                    required={!galeriEditId}
+                  />
+                </div>
+                <button type="submit" className="md:col-span-2 bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 rounded-md text-sm">
+                  {galeriEditId ? 'Simpan Perubahan Foto' : 'Tambah ke Galeri'}
+                </button>
+              </form>
+            </div>
+
+            <div className="bg-white p-5 md:p-8 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 border-b pb-3">Daftar Foto Galeri</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {daftarGaleri.map((foto) => (
+                  <div key={foto.id || foto.src} className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    <div className="aspect-square bg-gray-200">
+                      <img src={foto.src} alt={foto.alt || foto.judul || foto.label} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <h4 className="font-bold text-gray-900 text-sm truncate">{foto.judul || foto.label}</h4>
+                      {foto.id ? (
+                        <div className="flex gap-2 mt-3">
+                          <button type="button" onClick={() => handleMulaiEditGaleri(foto)} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 rounded-md">Edit</button>
+                          <button type="button" onClick={() => handleHapusGaleri(foto.id)} className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-md">Hapus</button>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-gray-400 mt-2">Foto bawaan</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
