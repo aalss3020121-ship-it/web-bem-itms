@@ -8,9 +8,46 @@ import { supabase } from '@/lib/supabase';
 // Import ReactQuill secara dinamis agar Next.js tidak error saat build
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
+const WAKTU_SHOLAT = [
+  { key: 'Fajr', label: 'Subuh' },
+  { key: 'Dhuhr', label: 'Dzuhur' },
+  { key: 'Asr', label: 'Ashar' },
+  { key: 'Maghrib', label: 'Maghrib' },
+  { key: 'Isha', label: 'Isya' }
+];
+
+const LOKASI_DEFAULT = {
+  latitude: 3.5952,
+  longitude: 98.6722,
+  label: 'Medan'
+};
+
+const GALERI_TENTANG = [
+  {
+    src: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=85',
+    alt: 'Mahasiswa berdiskusi bersama',
+    label: 'Kolaborasi mahasiswa'
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=900&q=85',
+    alt: 'Mahasiswa bekerja dalam satu tim',
+    label: 'Gerak bersama'
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=900&q=85',
+    alt: 'Suasana kegiatan kampus',
+    label: 'Ruang bertumbuh'
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=900&q=85',
+    alt: 'Presentasi dalam sebuah kegiatan',
+    label: 'Menyuarakan aspirasi'
+  }
+];
+
 export default function Home() {
   
-  const [halamanAktif, setHalamanAktif] = useState("beranda"); // "beranda", "login", "admin", "detail", "tentang"
+  const [halamanAktif, setHalamanAktif] = useState("beranda"); // "beranda", "ibadah", "login", "admin", "detail", "tentang"
   const [kategoriAktif, setKategoriAktif] = useState("SEMUA");
   const [searchTerm, setSearchTerm] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -34,6 +71,12 @@ export default function Home() {
   const [daftarBerita, setDaftarBerita] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [jadwalSholat, setJadwalSholat] = useState(null);
+  const [lokasiSholat, setLokasiSholat] = useState(LOKASI_DEFAULT);
+  const [loadingJadwal, setLoadingJadwal] = useState(true);
+  const [pengingatAktif, setPengingatAktif] = useState(false);
+  const [arahKiblat, setArahKiblat] = useState(null);
+  const [kompasAktif, setKompasAktif] = useState(false);
 
   const fetchBerita = useCallback(async () => {
     try {
@@ -88,6 +131,81 @@ export default function Home() {
       console.error('Gagal mendaftarkan PWA service worker:', registrationError);
     });
   }, []);
+
+  useEffect(() => {
+    let dibatalkan = false;
+
+    const ambilJadwal = async (latitude, longitude, label) => {
+      setLoadingJadwal(true);
+      try {
+        const tanggal = new Date().toISOString().split('T')[0].split('-').reverse().join('-');
+        const response = await fetch(`https://api.aladhan.com/v1/timings/${tanggal}?latitude=${latitude}&longitude=${longitude}&method=11`);
+        if (!response.ok) throw new Error('Jadwal sholat tidak tersedia');
+        const hasil = await response.json();
+        if (!dibatalkan) {
+          setJadwalSholat(hasil.data.timings);
+          setLokasiSholat({ latitude, longitude, label });
+        }
+      } catch (jadwalError) {
+        console.error('Gagal memuat jadwal sholat:', jadwalError);
+      } finally {
+        if (!dibatalkan) setLoadingJadwal(false);
+      }
+    };
+
+    if (!navigator.geolocation) {
+      ambilJadwal(LOKASI_DEFAULT.latitude, LOKASI_DEFAULT.longitude, LOKASI_DEFAULT.label);
+      return () => { dibatalkan = true; };
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => ambilJadwal(coords.latitude, coords.longitude, 'Lokasi perangkat'),
+      () => ambilJadwal(LOKASI_DEFAULT.latitude, LOKASI_DEFAULT.longitude, LOKASI_DEFAULT.label),
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+
+    return () => { dibatalkan = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!pengingatAktif || !jadwalSholat) return undefined;
+
+    const timerIds = WAKTU_SHOLAT.map(({ key, label }) => {
+      const [jam, menit] = jadwalSholat[key].split(':').map(Number);
+      const waktuSholat = new Date();
+      waktuSholat.setHours(jam, menit, 0, 0);
+      const selisih = waktuSholat.getTime() - Date.now();
+      if (selisih <= 0) return null;
+
+      return window.setTimeout(() => {
+        const judul = `Waktu sholat ${label}`;
+        if (Notification.permission === 'granted') {
+          new Notification(judul, { body: `Saatnya menunaikan sholat ${label}.` });
+        }
+      }, selisih);
+    }).filter(Boolean);
+
+    return () => timerIds.forEach((timerId) => window.clearTimeout(timerId));
+  }, [jadwalSholat, pengingatAktif]);
+
+  useEffect(() => {
+    if (!kompasAktif) return undefined;
+
+    const hitungArahKiblat = (event) => {
+      const heading = event.webkitCompassHeading || (360 - (event.alpha || 0));
+      const phi1 = lokasiSholat.latitude * Math.PI / 180;
+      const phi2 = 21.4225 * Math.PI / 180;
+      const deltaLambda = (39.8262 - lokasiSholat.longitude) * Math.PI / 180;
+      const arah = Math.atan2(
+        Math.sin(deltaLambda),
+        Math.cos(phi1) * Math.tan(phi2) - Math.sin(phi1) * Math.cos(deltaLambda)
+      ) * 180 / Math.PI;
+      setArahKiblat((heading + arah + 360) % 360);
+    };
+
+    window.addEventListener('deviceorientation', hitungArahKiblat, true);
+    return () => window.removeEventListener('deviceorientation', hitungArahKiblat, true);
+  }, [kompasAktif, lokasiSholat]);
 
   useEffect(() => {
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -169,6 +287,41 @@ export default function Home() {
       await OneSignal.Notifications.requestPermission();
     });
   };
+
+  const handleAktifkanPengingat = async () => {
+    if (!('Notification' in window)) {
+      alert('Browser ini belum mendukung notifikasi.');
+      return;
+    }
+
+    const izin = await Notification.requestPermission();
+    if (izin !== 'granted') {
+      alert('Izin notifikasi belum diberikan.');
+      return;
+    }
+
+    setPengingatAktif(true);
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      await OneSignal.Notifications.requestPermission();
+    });
+  };
+
+  const handleAktifkanKompas = async () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const izin = await DeviceOrientationEvent.requestPermission();
+      if (izin !== 'granted') return;
+    }
+
+    setKompasAktif(true);
+  };
+
+  const waktuBerikutnya = jadwalSholat && WAKTU_SHOLAT.map(({ key, label }) => {
+    const [jam, menit] = jadwalSholat[key].split(':').map(Number);
+    const waktu = new Date();
+    waktu.setHours(jam, menit, 0, 0);
+    return { key, label, waktu };
+  }).find(({ waktu }) => waktu > new Date());
 
   const handleLoginAdmin = (e) => {
     e.preventDefault();
@@ -454,14 +607,12 @@ export default function Home() {
             </button>
             <button 
               onClick={() => { 
-                setHalamanAktif("beranda"); 
+                setHalamanAktif("ibadah"); 
                 setBeritaPilihan(null); 
-                setKategoriAktif("SEMUA"); 
-                setSearchTerm(""); 
               }} 
               className="hover:text-blue-200 cursor-pointer"
             >
-              Kementerian
+              Ibadah
             </button>
             <button 
               onClick={() => { 
@@ -481,7 +632,8 @@ export default function Home() {
         
         {/* HALAMAN TENTANG KAMI */}
         {halamanAktif === "tentang" && (
-          <div className="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-md border border-gray-200">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)] gap-6 items-start">
+            <section className="bg-white p-6 md:p-10 rounded-xl shadow-md border border-gray-200">
             <button 
               onClick={() => setHalamanAktif("beranda")} 
               className="text-sm font-bold text-blue-700 hover:underline mb-6 block cursor-pointer"
@@ -516,6 +668,26 @@ export default function Home() {
                 </ul>
               </div>
             </div>
+            </section>
+
+            <aside className="bg-blue-950 p-5 md:p-6 rounded-xl shadow-md border border-blue-900 text-white lg:sticky lg:top-24">
+              <div className="mb-5">
+                <p className="text-blue-300 text-[11px] font-bold uppercase tracking-[0.2em]">Dokumentasi gerakan</p>
+                <h2 className="text-2xl font-extrabold mt-1">Cerita dari lapangan</h2>
+                <p className="text-blue-100 text-sm mt-2 leading-relaxed">Merekam langkah kecil, ruang kolaborasi, dan energi mahasiswa ITMS.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {GALERI_TENTANG.map((foto, index) => (
+                  <figure key={foto.src} className={`group relative overflow-hidden rounded-lg bg-blue-900 ${index === 0 ? 'col-span-2 aspect-[2/1]' : 'aspect-square'}`}>
+                    <img src={foto.src} alt={foto.alt} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-950/90 to-transparent px-3 pb-2 pt-8 text-[11px] font-bold text-white">
+                      {foto.label}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </aside>
           </div>
         )}
 
@@ -576,6 +748,94 @@ export default function Home() {
                 🔗 Bagikan Berita
               </button>
             </div>
+          </div>
+        )}
+
+        {/* HALAMAN IBADAH */}
+        {halamanAktif === "ibadah" && (
+          <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
+            <header className="bg-blue-950 text-white rounded-2xl p-6 md:p-10 shadow-lg overflow-hidden relative">
+              <div className="relative z-10 max-w-2xl">
+                <p className="text-blue-300 text-xs font-bold uppercase tracking-[0.2em] mb-3">Ruang Ibadah BEM ITMS</p>
+                <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">Jadwal sholat hari ini</h1>
+                <p className="text-blue-100 mt-3 text-sm md:text-base">Temukan waktu sholat, arah kiblat, dan bacaan Al-Qur&apos;an dalam satu tempat.</p>
+                <p className="mt-5 text-xs text-blue-200">Lokasi: {lokasiSholat.label}</p>
+              </div>
+              <div className="absolute -right-10 -bottom-20 w-64 h-64 rounded-full border-[32px] border-blue-900/70" aria-hidden="true" />
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
+              <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-7">
+                <div className="flex flex-col sm:flex-row justify-between gap-3 mb-5">
+                  <div>
+                    <h2 className="text-xl font-extrabold text-gray-900">Waktu sholat</h2>
+                    <p className="text-xs text-gray-500 mt-1">Metode perhitungan Kementerian Agama RI</p>
+                  </div>
+                  {waktuBerikutnya && (
+                    <div className="bg-blue-50 text-blue-800 px-3 py-2 rounded-lg text-right">
+                      <span className="text-[10px] uppercase font-bold tracking-wider block">Berikutnya</span>
+                      <strong className="text-sm">{waktuBerikutnya.label}, {jadwalSholat[waktuBerikutnya.key]}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {loadingJadwal ? (
+                  <div className="py-12 text-center text-sm text-gray-500">Memuat jadwal sholat...</div>
+                ) : jadwalSholat ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {WAKTU_SHOLAT.map(({ key, label }) => (
+                      <div key={key} className={`rounded-lg p-3 text-center border ${waktuBerikutnya?.key === key ? 'bg-blue-700 text-white border-blue-700' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
+                        <span className="text-xs font-semibold block">{label}</span>
+                        <strong className="text-xl block mt-1">{jadwalSholat[key]}</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-red-600">Jadwal belum dapat dimuat. Periksa koneksi internet.</p>
+                )}
+
+                <button
+                  onClick={handleAktifkanPengingat}
+                  className={`mt-5 w-full py-3 rounded-lg text-sm font-bold transition-colors cursor-pointer ${pengingatAktif ? 'bg-green-100 text-green-700' : 'bg-blue-700 hover:bg-blue-800 text-white'}`}
+                >
+                  {pengingatAktif ? 'Pengingat sholat aktif' : 'Aktifkan pengingat sholat'}
+                </button>
+                <p className="text-[11px] text-gray-400 mt-2 text-center">Izin notifikasi diperlukan agar pengingat dapat muncul.</p>
+              </section>
+
+              <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-7 flex flex-col">
+                <div className="flex justify-between items-start gap-3">
+                  <div>
+                    <h2 className="text-xl font-extrabold text-gray-900">Kompas kiblat</h2>
+                    <p className="text-xs text-gray-500 mt-1">Aktifkan sensor arah perangkat</p>
+                  </div>
+                  <span className="text-2xl" aria-hidden="true">🧭</span>
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-center py-6">
+                  <div className="w-40 h-40 rounded-full border-4 border-blue-100 bg-blue-50 flex items-center justify-center relative" style={{ transform: `rotate(${arahKiblat || 0}deg)` }}>
+                    <span className="absolute top-2 text-xs font-bold text-blue-700">UTARA</span>
+                    <span className="text-5xl" aria-hidden="true">↑</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-4 text-center">
+                    {arahKiblat === null ? 'Arah kiblat akan muncul setelah kompas diaktifkan.' : `Arah kiblat ${Math.round(arahKiblat)}°`}
+                  </p>
+                </div>
+                <button onClick={handleAktifkanKompas} className="w-full py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold cursor-pointer">
+                  {kompasAktif ? 'Kompas sedang membaca arah' : 'Aktifkan kompas'}
+                </button>
+              </section>
+            </div>
+
+            <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div>
+                <p className="text-xs text-blue-700 font-bold uppercase tracking-wider mb-2">Baca dan renungkan</p>
+                <h2 className="text-2xl font-extrabold text-gray-900">Al-Qur&apos;an digital</h2>
+                <p className="text-sm text-gray-500 mt-1">Baca Al-Qur&apos;an lengkap dengan terjemahan Bahasa Indonesia.</p>
+              </div>
+              <a href="https://quran.kemenag.go.id/" target="_blank" rel="noopener noreferrer" className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-3 rounded-lg text-sm font-bold text-center">
+                Buka Al-Qur&apos;an
+              </a>
+            </section>
           </div>
         )}
 
